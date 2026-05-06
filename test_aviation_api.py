@@ -14,7 +14,7 @@ if not api_key or api_key == "your_aviationstack_or_opensky_api_key_here":
     exit()
 
 # 3. Define the AviationStack endpoint for real-time flights
-url = "https://api.aviationstack.com/v1/flights"
+url = "http://api.aviationstack.com/v1/flights"
 
 # 4. Set the parameters (limiting to 1 record just to see the structure)
 params = {

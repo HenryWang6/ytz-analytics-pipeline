@@ -119,8 +119,8 @@ def main():
     today_str = datetime.now().strftime("%Y-%m-%d")
     
     extraction_tasks = [
-        {"label": "DEPARTURE", "filters": {"dep_iata": target_airport, "flight_date": today_str}},
-        {"label": "ARRIVAL", "filters": {"arr_iata": target_airport, "flight_date": today_str}}
+        {"label": "DEPARTURE", "filters": {"dep_iata": target_airport}},
+        {"label": "ARRIVAL", "filters": {"arr_iata": target_airport}}
     ]
     
     for task in extraction_tasks:

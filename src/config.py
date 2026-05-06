@@ -11,7 +11,7 @@ DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 
 # --- Aviation API Config ---
 API_KEY = os.getenv("AVIATION_API_KEY")
-API_URL = os.getenv("AVIATION_API_URL", "https://api.aviationstack.com/v1/flights")
+API_URL = os.getenv("AVIATION_API_URL", "http://api.aviationstack.com/v1/flights")
 DEFAULT_LIMIT = int(os.getenv("AVIATION_API_LIMIT", "100"))
 API_MAX_RETRIES = 3
 API_RETRY_BACKOFF = 2

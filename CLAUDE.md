@@ -34,7 +34,7 @@ Out of scope: historical backfill, multi-airport support, real-time/streaming, T
 
 ## Active Decisions
 - All major design decisions settled and documented in `docs/decisions/project_design.md` (dashboard structure, codeshare handling, SCD2 dims, incremental dbt strategy, KPI formulas).
-- Rate limit strategy **implemented**: extraction 3x/week (Mon/Wed/Fri), `flight_date` server-side filter, `max_pages=1` pagination cap, file-level dedup via `data/archive/`. ~26 req/month (48% headroom under 50 limit).
+- Rate limit strategy **implemented**: extraction 3x/week (Mon/Wed/Fri), client-side date filter (`flight_date == today`), `max_pages=1` pagination cap, file-level dedup via `data/archive/`. ~26 req/month (48% headroom under 50 limit). Note: `flight_date` API param blocked on free tier (403), so filtering is client-side only.
 - Next: implement dbt staging models (`stg_raw_flights.sql`), dims, and fact table per the design doc DAG.
 <!-- For settled architecture decisions with full rationale, write them up in docs/decisions/ (version-controlled, team-visible). -->
 
