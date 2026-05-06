@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: stg_raw_flights
+    description: >
+      Staging model that unpacks the RAW_JSON VARIANT column from the raw source
+      into typed columns. One row per flight record. Light cleansing only (type
+      casting, column renaming, null handling).
+    columns:
+      - name: flight_id
+        description: Primary key — synthetic or API-provided unique identifier
+        tests:
+          - unique
+          - not_null

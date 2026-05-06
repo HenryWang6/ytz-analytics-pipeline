@@ -1,0 +1,38 @@
+name: Daily Aviation Data Extraction
+
+on:
+  schedule:
+    # Runs at 02:00 UTC every day
+    - cron: '0 2 * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  extract-and-load:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11' # Match your local pyenv version
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests python-dotenv snowflake-connector-python
+
+    - name: Run extraction and load script
+      env:
+        AVIATION_API_KEY: ${{ secrets.AVIATION_API_KEY }}
+        SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+        SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+        SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+        SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+        SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      run: |
+        python src/extract_flights.py
+        python src/load_flights.py

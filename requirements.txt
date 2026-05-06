@@ -1,0 +1,10 @@
+# YTZ Analytics Pipeline — Production Dependencies
+requests>=2.33
+python-dotenv>=1.2
+snowflake-connector-python>=4.4
+dbt-core>=1.11
+dbt-snowflake>=1.11
+
+# Dev Dependencies (testing only)
+pytest>=9.0
+requests-mock>=1.12

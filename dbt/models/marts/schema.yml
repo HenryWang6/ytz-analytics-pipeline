@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: fct_flights
+    description: >
+      Fact table — one row per flight event (departure or arrival) at YTZ.
+      Enriched with airline and airport dimensions.
+    columns:
+      - name: flight_id
+        description: Unique identifier for the flight event
+        tests:
+          - unique
+          - not_null

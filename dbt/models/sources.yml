@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw flight data ingested from AviationStack API
+    database: "{{ env_var('SNOWFLAKE_DATABASE', 'RAW_DB') }}"
+    schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'AVIATION') }}"
+    tables:
+      - name: raw_flights
+        description: >
+          Raw JSON flight data from AviationStack API, loaded daily via the
+          Python EL pipeline. Each row is one API response record stored as
+          a VARIANT column alongside extraction metadata.
+        columns:
+          - name: RAW_JSON
+            description: The full JSON response object for a single flight
+          - name: EXTRACTED_AT
+            description: Timestamp when this record was loaded into Snowflake
+          - name: DIRECTION
+            description: Flight direction — DEPARTURE or ARRIVAL
+          - name: TARGET_AIRPORT
+            description: The monitored airport (YTZ — Toronto Island)
