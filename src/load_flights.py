@@ -1,4 +1,6 @@
 import os
+import re
+import shutil
 import snowflake.connector
 from config import (
     get_logger, validate_snowflake_config, DATA_DIR, 
@@ -7,6 +9,13 @@ from config import (
 )
 
 logger = get_logger("load_flights")
+
+
+def _extract_direction(filename: str) -> str:
+    """Extract direction label from a flights_{direction}_{timestamp}.json filename."""
+    match = re.match(r'flights_(departure|arrival)_\d{8}_\d{6}\.json', filename, re.IGNORECASE)
+    return match.group(1).upper() if match else "UNKNOWN"
+
 
 class SnowflakeLoader:
     """Client for securely connecting to and loading data into Snowflake."""
@@ -22,9 +31,8 @@ class SnowflakeLoader:
     def load_file(self, filepath: str) -> bool:
         """Uploads a local NDJSON file to the Snowflake Stage and executes COPY INTO."""
         filename = os.path.basename(filepath)
-        parts = filename.split('_')
-        direction = parts[1].upper() if len(parts) > 1 else "UNKNOWN"
-        target_airport = "YTZ" 
+        direction = _extract_direction(filename)
+        target_airport = "YTZ"
         
         logger.info(f"Connecting to Snowflake to load {filename}...")
         
@@ -107,15 +115,13 @@ def main():
         success = loader.load_file(filepath)
         
         if success:
-            # Keeping the file locally for testing
-            # try:
-            #     os.remove(filepath)
-            #     logger.info(f"Cleaned up loaded file: {filepath}")
-            # except Exception as e:
-            #     logger.error(f"Could not remove file: {e}")
-            logger.info(f"File loaded successfully, retaining local copy for testing: {filepath}")
+            archive_dir = os.path.join(os.path.dirname(filepath), "archive")
+            os.makedirs(archive_dir, exist_ok=True)
+            archived_path = os.path.join(archive_dir, os.path.basename(filepath))
+            shutil.move(filepath, archived_path)
+            logger.info(f"Archived loaded file to {archived_path}")
         else:
-            logger.warning(f"Skipping cleanup for {filepath} due to load error.")
+            logger.warning(f"Skipping archive for {filepath} due to load error.")
             
     logger.info("=== Load Complete ===")
 
