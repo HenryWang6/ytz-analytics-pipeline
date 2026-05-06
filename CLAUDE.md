@@ -33,14 +33,17 @@ Out of scope: historical backfill, multi-airport support, real-time/streaming, T
 <!-- When scope changes: update this list. Save the *reason* to project memory (if only Claude needs it) or docs/decisions/ (if the team needs it too). -->
 
 ## Active Decisions
-- Project use case and pipeline design — currently brainstorming
-- De-duplication strategy — TBD (known issue: KPI returning more records than expected)
-- SCD2 implementation, schema change management, other AE methodology showcases — on hold (use case TBD)
+- Dashboard design finalized — see `docs/decisions/project_design.md` (Airport Overview + Airline Performance, daily snapshots, OTP + cancellations + gate analysis)
+- De-duplication strategy — codeshare tagging (`carrier_role` column, not row dropping). Overview filters to operating carrier; airline view includes marketing flights. Physical flight_id via MD5(flight_date || operating_flight_iata || direction).
+- SCD2 on dim_airlines + dim_airports (dbt snapshots from flight data). Seeds reserved for static physical constants (ytz_capacity).
+- Incremental models: fct_flights (merge on flight_id, 3-day look-back), summary tables (delete+insert, 7-day look-back). Rationale: flight status evolves over time (scheduled → active → landed).
+- Rate limit strategy — extraction 3x/week (Mon/Wed/Fri), both directions per run, with `flight_date` server-side filter to keep results within 100-record page. ~26 req/month (48% headroom under 50 limit). Pagination capped at 1 page; peak days may lose 1-4 codeshare rows but all operating-carrier flights captured. File-level dedup via `data/archive/` after Snowflake load.
 <!-- For settled architecture decisions with full rationale, write them up in docs/decisions/ (version-controlled, team-visible). -->
 
 ## Constraints
-- AviationStack free tier: 50 requests/month, 100 records/request. Never run extract_flights.py for testing — use cached data files or mocked API responses
+- AviationStack free tier: 50 requests/month, 100 records/request. Extraction runs 3x/week (Mon/Wed/Fri). Never run extract_flights.py for testing — use cached data files or mocked API responses
 - Snowflake free trial — confirm account is active before running load or dbt operations
+- Loaded NDJSON files move to `data/archive/` — prevents re-loading duplicates into Snowflake
 
 ---
 
