@@ -48,13 +48,27 @@ class AviationAPIClient:
             }
             params.update(api_filters)
 
-            # Retry loop with exponential backoff
+            # Retry loop with exponential backoff (5xx/network only, not 4xx)
             for attempt in range(self.max_retries + 1):
                 try:
                     response = self.session.get(self.api_url, params=params)
                     response.raise_for_status()
                     data = response.json()
                     break
+                except requests.exceptions.HTTPError as e:
+                    if response is not None and 400 <= response.status_code < 500:
+                        logger.error(f"API Request failed (client error, not retrying): {e}")
+                        return all_flights
+                    if attempt < self.max_retries:
+                        delay = self.backoff_factor ** attempt
+                        logger.warning(
+                            f"Request failed (attempt {attempt + 1}/{self.max_retries + 1}): {e}. "
+                            f"Retrying in {delay}s..."
+                        )
+                        time.sleep(delay)
+                    else:
+                        logger.error(f"API Request failed after {self.max_retries + 1} attempts: {e}")
+                        return all_flights
                 except requests.exceptions.RequestException as e:
                     if attempt < self.max_retries:
                         delay = self.backoff_factor ** attempt
