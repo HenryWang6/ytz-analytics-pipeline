@@ -2,7 +2,7 @@
 
 A production-grade aviation data pipeline — API extraction to dbt-modeled analytics in Snowflake — built to demonstrate end-to-end analytics engineering with testing, documentation, and CI/CD.
 
-The pipeline targets daily arriving and departing flights for Toronto Island Airport (YTZ), taking advantage of the airport's low volume to capture a full daily snapshot without exceeding free-tier API limits.
+The pipeline targets arriving and departing flights for Toronto Island Airport (YTZ) on a tri-weekly cadence (Mon/Wed/Fri), capturing complete daily snapshots while staying well within free-tier API limits (~26 of 100 monthly requests).
 
 ---
 
@@ -10,10 +10,10 @@ The pipeline targets daily arriving and departing flights for Toronto Island Air
 
 ### 1. Decoupled ELT
 Extraction and loading are strictly separated:
-- **Extract (`src/extract_flights.py`)**: Fetches data from the AviationStack API, handles pagination, buffers raw NDJSON to `data/`
+- **Extract (`src/extract_flights.py`)**: Fetches data from the AviationStack API, client-side date filtering, pagination capped at 1 page (100 records), buffers raw NDJSON to `data/`
 - **Load (`src/load_flights.py`)**: Scans `data/`, uploads to Snowflake internal stage, executes `COPY INTO`
 
-If the Snowflake connection fails, the API quota isn't wasted — JSON files remain safely stored for the next attempt.
+After a successful load, files are archived to `data/archive/` to prevent re-loading duplicates. If the Snowflake connection fails, the files remain in `data/` for the next attempt.
 
 ### 2. Schema-on-Read (VARIANT)
 The target table (`RAW_DB.AVIATION.RAW_FLIGHTS`) stores raw JSON in a `VARIANT` column. All schema parsing and transformations happen downstream in dbt.
@@ -40,18 +40,18 @@ ytz-analytics-pipeline/
 │   ├── extract_flights.py     # AviationAPIClient + extraction orchestration
 │   └── load_flights.py        # SnowflakeLoader + file ingestion
 ├── dbt/
-│   ├── models/staging/        # 1:1 with source, JSON flattening
-│   ├── models/marts/          # Business-facing fact/dimension tables
-│   ├── macros/                # Reusable Jinja macros
-│   ├── seeds/                 # CSV reference data
+│   ├── models/staging/        # 1:1 with source, JSON flattening (schema defined, models TBD)
+│   ├── models/marts/          # Business-facing fact/dimension tables (schema defined, models TBD)
+│   ├── macros/                # Reusable Jinja macros (TBD)
+│   ├── seeds/                 # CSV reference data (TBD)
 │   ├── snapshots/             # SCD Type 2 (planned)
-│   └── tests/                 # Custom singular data tests
+│   └── tests/                 # Custom singular data tests (TBD)
 ├── tests/                     # pytest unit tests
 ├── data/                      # Local NDJSON buffer (extract → load handoff)
 ├── setup_snowflake.sql        # DDL: database, schema, stage, table
 ├── requirements.txt           # Python dependencies
 ├── .env                       # Local credentials (git-ignored)
-└── .github/workflows/         # CI/CD: daily extraction at 02:00 UTC
+└── .github/workflows/         # CI/CD: tri-weekly extraction Mon/Wed/Fri 02:00 UTC
 ```
 
 ---
@@ -61,8 +61,9 @@ ytz-analytics-pipeline/
 ### Local Development
 ```bash
 pip install -r requirements.txt
+# WARNING: extract_flights.py uses live API quota — 2 requests per run
 python src/extract_flights.py   # Fetch today's flights from API
-python src/load_flights.py      # Load buffered files into Snowflake
+python src/load_flights.py      # Load buffered files into Snowflake, archive on success
 ```
 
 ### dbt
@@ -80,4 +81,4 @@ python -m pytest tests/ -v
 ```
 
 ### CI/CD (GitHub Actions)
-The `.github/workflows/daily_flight_extract.yml` workflow runs daily at 02:00 UTC. Add your `.env` variables as GitHub Repository Secrets.
+The `.github/workflows/daily_flight_extract.yml` workflow runs tri-weekly (Mon/Wed/Fri) at 02:00 UTC. Add your `.env` variables as GitHub Repository Secrets.
