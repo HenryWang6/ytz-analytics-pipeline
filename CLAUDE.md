@@ -33,7 +33,7 @@ Out of scope: historical backfill, multi-airport support, real-time/streaming, T
 <!-- When scope changes: update this list. Save the *reason* to project memory (if only Claude needs it) or docs/decisions/ (if the team needs it too). -->
 
 ## Active Decisions
-- dbt staging + marts model implementation — next session
+- Project use case and pipeline design — currently brainstorming
 - De-duplication strategy — TBD (known issue: KPI returning more records than expected)
 - SCD2 implementation, schema change management, other AE methodology showcases — on hold (use case TBD)
 <!-- For settled architecture decisions with full rationale, write them up in docs/decisions/ (version-controlled, team-visible). -->
