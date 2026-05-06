@@ -4,11 +4,152 @@ models:
   - name: stg_raw_flights
     description: >
       Staging model that unpacks the RAW_JSON VARIANT column from the raw source
-      into typed columns. One row per flight record. Light cleansing only (type
-      casting, column renaming, null handling).
+      into typed columns. One row per flight record per marketing airline.
+      Codeshare flights produce multiple rows with the same flight_id (one for
+      the operator, one for each marketing carrier). Light cleansing only: type
+      casting, column renaming, null handling.
+
     columns:
       - name: flight_id
-        description: Primary key — synthetic or API-provided unique identifier
+        description: >
+          Surrogate key hashed from flight_date, operating_flight_iata, and
+          direction. Identical across all codeshare rows of the same physical flight.
         tests:
-          - unique
+          - not_null
+
+      - name: flight_date
+        description: Scheduled date of the flight (YYYY-MM-DD)
+        tests:
+          - not_null
+
+      - name: direction
+        description: Flight direction relative to YTZ — DEPARTURE or ARRIVAL
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['DEPARTURE', 'ARRIVAL']
+
+      - name: flight_status
+        description: >
+          Current flight status per AviationStack API.
+          Expected values: scheduled, active, actual, cancelled, canceled,
+          incident, diverted. NULL for dead/incomplete API records.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['scheduled', 'active', 'actual', 'cancelled', 'canceled', 'incident', 'diverted']
+
+      - name: dep_iata
+        description: IATA code of the departure airport
+        tests:
+          - not_null
+
+      - name: arr_iata
+        description: >
+          IATA code of the arrival airport. NULL for incomplete API records.
+
+      - name: airline_iata
+        description: >
+          IATA code of the airline on this row. For marketing/codeshare rows,
+          this is the marketing carrier (not the operator). NULL when the API
+          omits airline data.
+
+      - name: airline_name
+        description: >
+          Full name of the airline on this row. NULL when the API omits the
+          airline name (observed on some codeshare/marketing records).
+
+      - name: flight_iata
+        description: >
+          IATA flight number of the marketing carrier (e.g., 'EK123').
+          For codeshare rows, this is the marketing carrier's flight number,
+          not the operator's. NULL when the underlying flight data is missing.
+
+      - name: carrier_role
+        description: >
+          Role of the airline on this row. 'operating' means this airline flies
+          the aircraft. 'marketing' means this airline sells the ticket under a
+          codeshare agreement.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['operating', 'marketing']
+
+      - name: operating_airline_iata
+        description: >
+          IATA code of the airline that actually operates the aircraft.
+          For operating rows, equals airline_iata. For marketing rows, extracted
+          from the codeshared sub-object. NULL when the underlying airline data
+          is missing.
+
+      - name: operating_flight_iata
+        description: >
+          IATA flight number of the actual aircraft operator (e.g., 'PD101').
+          For operating rows, equals flight_iata. For marketing rows, extracted
+          from the codeshared sub-object. NULL when the underlying flight data
+          is missing.
+
+      - name: sched_dep
+        description: Scheduled departure time (with timezone)
+        tests:
+          - not_null
+
+      - name: sched_arr
+        description: Scheduled arrival time (with timezone)
+        tests:
+          - not_null
+
+      - name: actual_dep
+        description: >
+          Actual departure time (with timezone). NULL if the flight has not yet
+          departed or was cancelled.
+
+      - name: actual_arr
+        description: >
+          Actual arrival time (with timezone). NULL if the flight has not yet
+          arrived or was cancelled.
+
+      - name: delay_dep
+        description: Departure delay in minutes. Negative values indicate early departure.
+
+      - name: delay_arr
+        description: Arrival delay in minutes. Negative values indicate early arrival.
+
+      - name: gate_dep
+        description: Departure gate at YTZ or origin airport
+
+      - name: gate_arr
+        description: Arrival gate at YTZ or destination airport
+
+      - name: baggage
+        description: >
+          Baggage claim belt at the arrival airport. Sourced from
+          arrival.baggage in the API response. NULL when unavailable.
+
+      - name: terminal_dep
+        description: Departure terminal. NULL when not available in the API response.
+
+      - name: terminal_arr
+        description: Arrival terminal. NULL when not available in the API response.
+
+      - name: aircraft_icao24
+        description: >
+          ICAO 24-bit aircraft address (hex string, e.g., 'C06363').
+          NULL when aircraft data is unavailable from the API.
+
+      - name: extracted_at
+        description: >
+          Timestamp when this flight record was loaded into Snowflake.
+          Used for source freshness checks.
+        tests:
+          - not_null
+
+      - name: target_airport
+        description: >
+          The monitored airport for this pipeline (always YTZ).
+          Included for reference in downstream joins and freshness checks.
+        tests:
           - not_null
