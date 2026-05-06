@@ -25,8 +25,9 @@
 ## Scope
 - Tri-weekly batch ELT pipeline for Toronto Island Airport (YTZ)
 - Raw JSON ingestion into Snowflake VARIANT column (schema-on-read)
-- dbt staging and marts models with testing and documentation
-- pytest unit tests + dbt data quality tests
+- dbt models: staging views, SCD2 snapshots (dims), intermediate layer, incremental fact table (merge), incremental summary tables (delete+insert), seeds for static reference data
+- dbt testing (schema tests + dbt-expectations) and documentation
+- pytest unit tests for Python pipeline
 - CI/CD via GitHub Actions
 
 Out of scope: historical backfill, multi-airport support, real-time/streaming, Tableau dashboards (built externally)
