@@ -23,7 +23,7 @@
 - `tests/` — pytest unit tests for Python pipeline
 
 ## Scope
-- Daily batch ELT pipeline for Toronto Island Airport (YTZ)
+- Tri-weekly batch ELT pipeline for Toronto Island Airport (YTZ)
 - Raw JSON ingestion into Snowflake VARIANT column (schema-on-read)
 - dbt staging and marts models with testing and documentation
 - pytest unit tests + dbt data quality tests

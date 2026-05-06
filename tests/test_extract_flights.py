@@ -123,6 +123,28 @@ class TestAviationAPIClient:
         assert flights[0]["flight"]["iata"] == "PD101"
         assert call_count["count"] == 3
 
+    def test_fetch_flights_no_retry_on_4xx(self, requests_mock):
+        client = AviationAPIClient(
+            api_url="https://api.example.com/v1/flights",
+            api_key="test_key",
+            max_retries=3,
+            backoff_factor=0,
+        )
+        call_count = {"count": 0}
+
+        def forbidden_response(request, context):
+            call_count["count"] += 1
+            context.status_code = 403
+            return {"error": {"message": "function_access_restricted"}}
+
+        requests_mock.get(
+            "https://api.example.com/v1/flights",
+            json=forbidden_response,
+        )
+        flights = client.fetch_flights(limit=100, dep_iata="YTZ")
+        assert flights == []
+        assert call_count["count"] == 1  # no retries on 4xx
+
     def test_fetch_flights_max_pages_cap(self, requests_mock):
         client = AviationAPIClient(
             api_url="https://api.example.com/v1/flights",
