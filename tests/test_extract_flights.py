@@ -85,6 +85,8 @@ class TestAviationAPIClient:
         client = AviationAPIClient(
             api_url="https://api.example.com/v1/flights",
             api_key="test_key",
+            max_retries=0,
+            backoff_factor=0,
         )
         requests_mock.get(
             "https://api.example.com/v1/flights",
