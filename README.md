@@ -1,63 +1,83 @@
-# Aviation Data Pipeline: Toronto Island Airport (YTZ)
+# YTZ Analytics Pipeline
 
-## Project Overview
-This project is an automated, production-grade ELT (Extract, Load, Transform) data pipeline designed to pull live, daily flight data from the AviationStack API and ingest it into a Snowflake data warehouse. 
+A production-grade aviation data pipeline — API extraction to dbt-modeled analytics in Snowflake — built to demonstrate end-to-end analytics engineering with testing, documentation, and CI/CD.
 
-The pipeline specifically targets all arriving and departing flights for Toronto Island Airport (YTZ), taking advantage of the airport's low daily volume to capture a comprehensive, daily snapshot without exceeding API limits.
-
----
-
-## 🏗️ Architecture & Design Choices
-
-The project was built adhering to modern software engineering and data engineering best practices:
-
-### 1. Separation of Concerns (Decoupled ELT)
-Instead of a single monolithic script, the extraction and loading phases are strictly separated:
-*   **Extract Phase (`extract_flights.py`)**: Fetches data from the API, handles pagination, and buffers the raw JSON payload to a local `./data/` directory.
-*   **Load Phase (`load_flights.py`)**: Scans the `./data/` directory, connects to Snowflake, and loads any pending files. 
-*   *Why?* If the Snowflake connection fails, the API quota isn't wasted. The JSON file remains safely stored locally, ready to be picked up during the next load attempt.
-
-### 2. Object-Oriented Programming (OOP)
-The core logic is wrapped in classes (`AviationAPIClient` and `SnowflakeLoader`). The entry points (`main()`) merely orchestrate the logic by passing in configurations. This makes the code highly modular and unit-testable.
-
-### 3. Centralized Configuration (`config.py`)
-All environment variables, directory paths, and default limits are loaded in a single `config.py` file. This acts as the Single Source of Truth for the entire application, validating credentials before any expensive operations occur.
-
-### 4. Snowflake Internal Staging
-Rather than attempting row-by-row inserts, the loading script utilizes Snowflake's internal stages. It executes a `PUT` command to securely upload the local JSON files to the cloud, followed by a `COPY INTO` command for lightning-fast bulk ingestion.
-
-### 5. Flexible Schema-on-Read (`VARIANT`)
-The target Snowflake table (`RAW_DB.AVIATION.RAW_FLIGHTS`) uses a `VARIANT` column to store the raw nested JSON. This embraces the modern ELT philosophy: load everything raw first, then handle schema parsing and transformations downstream using dbt or SQL views.
+The pipeline targets daily arriving and departing flights for Toronto Island Airport (YTZ), taking advantage of the airport's low volume to capture a full daily snapshot without exceeding free-tier API limits.
 
 ---
 
-## 📂 File Structure
+## Architecture & Design Choices
+
+### 1. Decoupled ELT
+Extraction and loading are strictly separated:
+- **Extract (`src/extract_flights.py`)**: Fetches data from the AviationStack API, handles pagination, buffers raw NDJSON to `data/`
+- **Load (`src/load_flights.py`)**: Scans `data/`, uploads to Snowflake internal stage, executes `COPY INTO`
+
+If the Snowflake connection fails, the API quota isn't wasted — JSON files remain safely stored for the next attempt.
+
+### 2. Schema-on-Read (VARIANT)
+The target table (`RAW_DB.AVIATION.RAW_FLIGHTS`) stores raw JSON in a `VARIANT` column. All schema parsing and transformations happen downstream in dbt.
+
+### 3. dbt Transformation Layer
+Staging models flatten the raw JSON into typed columns. Marts expose business-facing fact and dimension tables. Testing uses dbt schema tests (unique, not_null) and dbt-expectations.
+
+### 4. OOP + Centralized Config
+Core logic in classes (`AviationAPIClient`, `SnowflakeLoader`) with `main()` entry points. All environment variables, paths, and defaults in `src/config.py`.
+
+### 5. Testing
+- **pytest** — unit tests for Python pipeline code (API calls mocked, zero quota consumed)
+- **dbt tests** — schema tests + dbt-expectations for data quality
+- **dbt-expectations** — extended assertions beyond built-in tests
+
+---
+
+## File Structure
 
 ```text
-aviation_portfolio_project/
-├── config.py                 # Centralized config, env loading, & logger setup
-├── extract_flights.py        # AviationAPIClient and extraction orchestration
-├── load_flights.py           # SnowflakeLoader and file ingestion orchestration
-├── setup_snowflake.sql       # DDL commands to create DB, Schema, Stage, and Table
-├── .env                      # Local credentials (ignored in git)
-├── .github/
-│   └── workflows/
-│       └── daily_flight_extract.yml  # CI/CD orchestration for daily runs
-└── data/                     # Temporary local buffer for NDJSON files
+ytz-analytics-pipeline/
+├── src/
+│   ├── config.py              # Centralized config, env loading, logger
+│   ├── extract_flights.py     # AviationAPIClient + extraction orchestration
+│   └── load_flights.py        # SnowflakeLoader + file ingestion
+├── dbt/
+│   ├── models/staging/        # 1:1 with source, JSON flattening
+│   ├── models/marts/          # Business-facing fact/dimension tables
+│   ├── macros/                # Reusable Jinja macros
+│   ├── seeds/                 # CSV reference data
+│   ├── snapshots/             # SCD Type 2 (planned)
+│   └── tests/                 # Custom singular data tests
+├── tests/                     # pytest unit tests
+├── data/                      # Local NDJSON buffer (extract → load handoff)
+├── setup_snowflake.sql        # DDL: database, schema, stage, table
+├── requirements.txt           # Python dependencies
+├── .env                       # Local credentials (git-ignored)
+└── .github/workflows/         # CI/CD: daily extraction at 02:00 UTC
 ```
 
 ---
 
-## 🚀 Execution & Deployment
+## Execution & Deployment
 
 ### Local Development
-To run the pipeline locally, ensure your `.env` file is populated with valid AviationStack and Snowflake credentials, then run:
 ```bash
-python extract_flights.py
-python load_flights.py
+pip install -r requirements.txt
+python src/extract_flights.py   # Fetch today's flights from API
+python src/load_flights.py      # Load buffered files into Snowflake
 ```
 
-### Production Orchestration (GitHub Actions)
-This pipeline is fully automated via GitHub Actions.
-1. Add your `.env` variables as **Repository Secrets** in your GitHub repository.
-2. The included `.github/workflows/daily_flight_extract.yml` will automatically spin up an Ubuntu container, install dependencies, and execute the scripts sequentially every day at **02:00 UTC**.
+### dbt
+```bash
+cd dbt
+dbt deps                        # Install dbt packages
+dbt debug                       # Verify Snowflake connection
+dbt run                         # Build models
+dbt test                        # Run data quality tests
+```
+
+### Testing (no API calls)
+```bash
+python -m pytest tests/ -v
+```
+
+### CI/CD (GitHub Actions)
+The `.github/workflows/daily_flight_extract.yml` workflow runs daily at 02:00 UTC. Add your `.env` variables as GitHub Repository Secrets.

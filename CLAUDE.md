@@ -32,8 +32,7 @@
 Out of scope: historical backfill, multi-airport support, real-time/streaming, Tableau dashboards (built externally)
 
 ## Active Decisions
-- Restructuring Python scripts into `src/` — in progress
-- dbt project scaffolding — in progress
+- dbt staging + marts model implementation — next session
 - De-duplication strategy — TBD (known issue: KPI returning more records than expected)
 - SCD2 implementation, schema change management, other AE methodology showcases — on hold (use case TBD)
 
