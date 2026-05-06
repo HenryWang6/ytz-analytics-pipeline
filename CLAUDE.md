@@ -30,11 +30,13 @@
 - CI/CD via GitHub Actions
 
 Out of scope: historical backfill, multi-airport support, real-time/streaming, Tableau dashboards (built externally)
+<!-- When scope changes: update this list. Save the *reason* to project memory (if only Claude needs it) or docs/decisions/ (if the team needs it too). -->
 
 ## Active Decisions
 - dbt staging + marts model implementation — next session
 - De-duplication strategy — TBD (known issue: KPI returning more records than expected)
 - SCD2 implementation, schema change management, other AE methodology showcases — on hold (use case TBD)
+<!-- For settled architecture decisions with full rationale, write them up in docs/decisions/ (version-controlled, team-visible). -->
 
 ## Constraints
 - AviationStack free tier: 50 requests/month, 100 records/request. Never run extract_flights.py for testing — use cached data files or mocked API responses
@@ -53,6 +55,8 @@ Out of scope: historical backfill, multi-airport support, real-time/streaming, T
 | Need to search/explore codebase | **Explore Agent** (don't guess file paths) |
 | Multi-step research spanning many files | **general-purpose Agent** |
 | Implementation done | **Review** — check edge cases, security, over-engineering |
+| Scope or priorities changed | **Update CLAUDE.md** `## Scope` / `## Active Decisions` — keep it lightweight (2-3 lines) |
+| Settled an architecture decision | **Write an ADR** in `docs/decisions/` with full rationale — litmus test: would another dev need this? |
 | User corrects approach or gives feedback | **Save to Memory** immediately |
 | User says "remember X" | **Save to Memory** immediately |
 
@@ -61,7 +65,7 @@ Out of scope: historical backfill, multi-airport support, real-time/streaming, T
 - Don't mock in tests unless the user explicitly approves it
 - Don't over-engineer — three similar lines > premature abstraction
 - Don't add error handling for scenarios that can't happen
-- Don't create docs/README unless asked
+- Don't create docs/README unless asked (docs/decisions/ ADRs are the exception — create those when architecture decisions settle)
 
 ### Commit style
 - `<type>: <short description>` — type is feat/fix/chore/docs/refactor/test
