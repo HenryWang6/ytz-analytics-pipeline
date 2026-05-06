@@ -53,10 +53,6 @@ class TestAviationAPIClient:
                 "pagination": {"total": 2, "count": 1},
             },
         ]
-        requests_mock.get(
-            "https://api.example.com/v1/flights",
-            json=responses[0],
-        )
 
         def paginated_response(request, context):
             offset = int(request.qs.get("offset", [0])[0])
