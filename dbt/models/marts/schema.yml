@@ -1019,16 +1019,15 @@ snapshots:
       - name: airline_iata
         description: >
           IATA two-letter airline designator (e.g., 'PD' for Porter Airlines).
-          Serves as the natural key for this dimension.
+          Serves as the natural key for this dimension. NOT unique — SCD2
+          snapshots can have multiple versions of the same airline over time.
         tests:
-          - unique
           - not_null
       - name: airline_name
         description: >
           Full name of the airline (e.g., 'Porter Airlines'). Tracked for
           changes — airlines occasionally rebrand while retaining their IATA code.
-        tests:
-          - not_null
+          NULL when the API omits airline details for codeshare records.
       - name: airline_icao
         description: >
           ICAO three-letter airline designator (e.g., 'PTR' for Porter Airlines).
@@ -1061,17 +1060,16 @@ snapshots:
       - name: airport_iata
         description: >
           IATA three-letter airport code (e.g., 'YTZ' for Toronto Island).
-          Serves as the natural key for this dimension.
+          Serves as the natural key for this dimension. NOT unique — SCD2
+          snapshots can have multiple versions of the same airport over time.
         tests:
-          - unique
           - not_null
       - name: airport_name
         description: >
           Full name of the airport (e.g., 'Billy Bishop Toronto City Airport').
           Tracked for changes — airport names can change due to renaming or
           rebranding while the IATA code remains stable.
-        tests:
-          - not_null
+          NULL when the API omits airport name details.
       - name: dbt_valid_from
         description: >
           Timestamp when this version of the airport record became effective.
