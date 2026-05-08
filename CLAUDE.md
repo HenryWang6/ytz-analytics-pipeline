@@ -38,7 +38,7 @@ Out of scope: historical backfill, multi-airport support, real-time/streaming, T
 ## Active Decisions
 - All major design decisions settled and documented in `docs/decisions/project_design.md` (dashboard structure, codeshare handling, SCD2 dims, incremental dbt strategy, KPI formulas).
 - Rate limit strategy **implemented**: extraction 3x/week (Mon/Wed/Fri), client-side date filter (`flight_date == today`), `max_pages=1` pagination cap, file-level dedup via `data/archive/`. ~26 req/month (74% headroom under 100 limit). Note: `flight_date` API param blocked on free tier (403), so filtering is client-side only.
-- Next: implement dbt dims (dim_airlines, dim_airports, dim_dates), seeds (ytz_capacity), and intermediate model (int_flights_enriched) per the design doc DAG.
+- All dbt models **implemented**: staging (stg_raw_flights), snapshots (dim_airlines, dim_airports), dim_dates, seed (ytz_capacity), intermediate (int_flights_enriched), fact (fct_flights), summary tables (daily_airport_summary, daily_airport_operations, daily_airline_summary, daily_airline_operations), gate_usage_summary. Next: run `dbt build` against Snowflake to materialize and test.
 <!-- For settled architecture decisions with full rationale, write them up in docs/decisions/ (version-controlled, team-visible). -->
 
 ## Constraints
