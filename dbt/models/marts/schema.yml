@@ -565,6 +565,45 @@ models:
       - name: actual_is_weekend
         description: Boolean — TRUE if the actual operation date is Saturday or Sunday (from dim_dates). NULL when actual_operation_date IS NULL.
 
+  - name: gate_usage_summary
+    description: >
+      Gate-to-airline affinity matrix. One row per gate per airline. Only
+      operating carrier flights are counted (carrier_role = 'operating').
+      Departures and arrivals are tracked in separate count columns, with a
+      combined total. Materialized as a full-refresh table — gate assignments
+      do not change retroactively and data volume is small.
+
+    columns:
+      - name: gate
+        description: Departure or arrival gate identifier (e.g., 'G1', 'A2')
+        tests:
+          - not_null
+
+      - name: airline_iata
+        description: IATA two-letter operating airline code (e.g., 'PD' for Porter Airlines)
+        tests:
+          - not_null
+
+      - name: airline_name
+        description: >
+          Airline name from the dim_airlines SCD2 dimension (current version only).
+          NULL when the airline is not yet present in the dimension table.
+
+      - name: departure_count
+        description: Number of departures from this gate by this airline
+        tests:
+          - not_null
+
+      - name: arrival_count
+        description: Number of arrivals at this gate by this airline
+        tests:
+          - not_null
+
+      - name: total_flight_count
+        description: Sum of departure_count and arrival_count
+        tests:
+          - not_null
+
 snapshots:
   - name: dim_airlines
     description: >
