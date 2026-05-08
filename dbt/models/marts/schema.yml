@@ -95,9 +95,8 @@ models:
         description: >
           Current flight status per AviationStack API.
           Expected values: scheduled, active, actual, cancelled, canceled,
-          incident, diverted.
+          incident, diverted. NULL for incomplete API records.
         tests:
-          - not_null
           - accepted_values:
               arguments:
                 values: ['scheduled', 'active', 'actual', 'cancelled', 'canceled', 'incident', 'diverted']
@@ -346,9 +345,8 @@ models:
           Current flight status per AviationStack API. Mutable — updated via
           merge when the flight progresses (scheduled -> active -> landed/diverted).
           Expected values: scheduled, active, actual, cancelled, canceled,
-          incident, diverted.
+          incident, diverted. NULL for incomplete API records.
         tests:
-          - not_null
           - accepted_values:
               arguments:
                 values: ['scheduled', 'active', 'actual', 'cancelled', 'canceled', 'incident', 'diverted']

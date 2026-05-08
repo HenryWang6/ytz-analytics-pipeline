@@ -36,7 +36,6 @@ models:
           Expected values: scheduled, active, actual, cancelled, canceled,
           incident, diverted. NULL for dead/incomplete API records.
         tests:
-          - not_null
           - accepted_values:
               arguments:
                 values: ['scheduled', 'active', 'actual', 'cancelled', 'canceled', 'incident', 'diverted']
