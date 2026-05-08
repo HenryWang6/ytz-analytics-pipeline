@@ -46,9 +46,18 @@ models:
         tests:
           - not_null
 
+      - name: dep_airport_name
+        description: >
+          Full name of the departure airport (e.g., 'Toronto City Centre Airport').
+
       - name: arr_iata
         description: >
           IATA code of the arrival airport. NULL for incomplete API records.
+
+      - name: arr_airport_name
+        description: >
+          Full name of the arrival airport (e.g., 'Sault Sainte Marie').
+          NULL when the API omits airport details.
 
       - name: airline_iata
         description: >
@@ -60,6 +69,11 @@ models:
         description: >
           Full name of the airline on this row. NULL when the API omits the
           airline name (observed on some codeshare/marketing records).
+
+      - name: airline_icao
+        description: >
+          ICAO code of the airline (e.g., 'PTR' for Porter Airlines). NULL when
+          the API omits the airline data or the airline has no ICAO code assigned.
 
       - name: flight_iata
         description: >

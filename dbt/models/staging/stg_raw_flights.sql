@@ -10,6 +10,7 @@ WITH unpacked AS (
 
         -- Departure fields
         s.RAW_JSON:departure.iata::VARCHAR                                              AS dep_iata,
+        s.RAW_JSON:departure.airport::VARCHAR                                           AS dep_airport_name,
         TRY_TO_TIMESTAMP_TZ(s.RAW_JSON:departure.scheduled::VARCHAR)                    AS sched_dep,
         TRY_TO_TIMESTAMP_TZ(s.RAW_JSON:departure.actual::VARCHAR)                       AS actual_dep,
         s.RAW_JSON:departure.delay::INT                                                 AS delay_dep,
@@ -18,6 +19,7 @@ WITH unpacked AS (
 
         -- Arrival fields
         s.RAW_JSON:arrival.iata::VARCHAR                                                AS arr_iata,
+        s.RAW_JSON:arrival.airport::VARCHAR                                             AS arr_airport_name,
         TRY_TO_TIMESTAMP_TZ(s.RAW_JSON:arrival.scheduled::VARCHAR)                      AS sched_arr,
         TRY_TO_TIMESTAMP_TZ(s.RAW_JSON:arrival.actual::VARCHAR)                         AS actual_arr,
         s.RAW_JSON:arrival.delay::INT                                                   AS delay_arr,
@@ -28,6 +30,7 @@ WITH unpacked AS (
         -- Airline fields (marketing carrier — who sells the ticket)
         s.RAW_JSON:airline.iata::VARCHAR                                                AS airline_iata,
         s.RAW_JSON:airline.name::VARCHAR                                                AS airline_name,
+        s.RAW_JSON:airline.icao::VARCHAR                                                AS airline_icao,
 
         -- Flight number (marketing carrier's flight number)
         s.RAW_JSON:flight.iata::VARCHAR                                                 AS flight_iata,
@@ -66,9 +69,12 @@ SELECT
     derived.direction,
     derived.flight_status,
     derived.dep_iata,
+    derived.dep_airport_name,
     derived.arr_iata,
+    derived.arr_airport_name,
     derived.airline_iata,
     derived.airline_name,
+    derived.airline_icao,
     derived.flight_iata,
     derived.carrier_role,
     derived.operating_airline_iata,

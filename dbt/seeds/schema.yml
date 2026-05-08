@@ -1,0 +1,26 @@
+version: 2
+
+seeds:
+  - name: ytz_capacity
+    description: >
+      Static reference data for Billy Bishop Toronto City Airport (YTZ)
+      capacity constraints: gate count, runway count, and operating hours.
+      Used for capacity-aware analytics (e.g., slot utilization, throughput
+      analysis).
+    columns:
+      - name: gate_count
+        description: Number of operational gates at YTZ
+        tests:
+          - not_null
+      - name: runway_count
+        description: Number of runways available at YTZ (only one active at a time)
+        tests:
+          - not_null
+      - name: operating_hours_start
+        description: Local time the airport opens for operations (24-hour format)
+        tests:
+          - not_null
+      - name: operating_hours_end
+        description: Local time the airport closes for operations (24-hour format)
+        tests:
+          - not_null
