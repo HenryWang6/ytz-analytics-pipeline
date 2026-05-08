@@ -604,6 +604,400 @@ models:
         tests:
           - not_null
 
+  - name: daily_airport_summary
+    description: >
+      Daily airport-level summary aggregated by flight_date (scheduled date).
+      Sources only operating carrier flights from fct_flights. Metrics include
+      counts by direction, on-time performance (OTP) percentages, and cancellation
+      rate. OTP denominators include only completed flights (actual_dep/actual_arr
+      IS NOT NULL) — cancelled flights never operated and are excluded.
+      Materialized as incremental delete+insert with a 7-day look-back window.
+
+    columns:
+      - name: flight_date
+        description: Scheduled date of the flights (YYYY-MM-DD). One row per day.
+        tests:
+          - unique
+          - not_null
+
+      - name: total_scheduled
+        description: Total number of scheduled flights (all statuses) for this date
+        tests:
+          - not_null
+
+      - name: total_actual
+        description: >
+          Total number of flights that actually operated (status NOT cancelled/canceled)
+          for this date
+        tests:
+          - not_null
+
+      - name: scheduled_dep
+        description: Number of scheduled departures for this date
+        tests:
+          - not_null
+
+      - name: scheduled_arr
+        description: Number of scheduled arrivals for this date
+        tests:
+          - not_null
+
+      - name: actual_dep
+        description: Number of departures that actually operated for this date
+        tests:
+          - not_null
+
+      - name: actual_arr
+        description: Number of arrivals that actually operated for this date
+        tests:
+          - not_null
+
+      - name: on_time_dep
+        description: >
+          Number of departures with delay_dep <= 15 minutes. Only counts flights
+          with a recorded actual departure time.
+        tests:
+          - not_null
+
+      - name: on_time_arr
+        description: >
+          Number of arrivals with delay_arr <= 15 minutes. Only counts flights
+          with a recorded actual arrival time.
+        tests:
+          - not_null
+
+      - name: cancelled_count
+        description: Number of cancelled flights for this date
+        tests:
+          - not_null
+
+      - name: dep_otp_pct
+        description: >
+          Departure on-time performance percentage. Calculated as on_time_dep
+          divided by flights with actual_dep IS NOT NULL. Rounded to 2 decimal places.
+          NULL-safe via NULLIF denominator.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: arr_otp_pct
+        description: >
+          Arrival on-time performance percentage. Calculated as on_time_arr
+          divided by flights with actual_arr IS NOT NULL. Rounded to 2 decimal places.
+          NULL-safe via NULLIF denominator.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: cancellation_rate_pct
+        description: >
+          Cancellation rate percentage. Calculated as cancelled_count divided by
+          total_scheduled. Rounded to 2 decimal places. NULL-safe via NULLIF denominator.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+  - name: daily_airport_operations
+    description: >
+      Daily airport-level summary grouped by actual_operation_date. Only includes
+      flights that actually operated (actual_operation_date IS NOT NULL). Sources
+      operating carrier flights from fct_flights. Uses the actual operation date
+      rather than the scheduled date — this reflects when the physical aircraft
+      movement occurred. Materialized as incremental delete+insert with a 7-day
+      look-back window.
+
+    columns:
+      - name: actual_operation_date
+        description: >
+          Date on which the flights actually operated. Derived from the earlier of
+          actual_dep or actual_arr. One row per day. NULL dates are excluded.
+        tests:
+          - unique
+          - not_null
+
+      - name: total_scheduled
+        description: Total number of scheduled flights for this operation date
+        tests:
+          - not_null
+
+      - name: total_actual
+        description: >
+          Total number of flights that actually operated (status NOT cancelled/canceled)
+          for this operation date
+        tests:
+          - not_null
+
+      - name: scheduled_dep
+        description: Number of scheduled departures for this operation date
+        tests:
+          - not_null
+
+      - name: scheduled_arr
+        description: Number of scheduled arrivals for this operation date
+        tests:
+          - not_null
+
+      - name: actual_dep
+        description: Number of departures that actually operated for this operation date
+        tests:
+          - not_null
+
+      - name: actual_arr
+        description: Number of arrivals that actually operated for this operation date
+        tests:
+          - not_null
+
+      - name: on_time_dep
+        description: Number of on-time departures for this operation date
+        tests:
+          - not_null
+
+      - name: on_time_arr
+        description: Number of on-time arrivals for this operation date
+        tests:
+          - not_null
+
+      - name: cancelled_count
+        description: Number of cancelled flights for this operation date
+        tests:
+          - not_null
+
+      - name: dep_otp_pct
+        description: >
+          Departure OTP percentage for this operation date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: arr_otp_pct
+        description: >
+          Arrival OTP percentage for this operation date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: cancellation_rate_pct
+        description: >
+          Cancellation rate percentage for this operation date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+  - name: daily_airline_summary
+    description: >
+      Daily airline-level summary grouped by flight_date and airline_iata.
+      Sources ALL rows from int_flights_enriched (both operating and marketing
+      carrier roles). This ensures marketing-only carriers (Air Transat, United,
+      Swiss) that sell codeshare tickets but don't physically operate flights at YTZ
+      still appear in airline dropdowns. Materialized as incremental delete+insert
+      with a 7-day look-back window.
+
+    columns:
+      - name: flight_date
+        description: Scheduled date of the flights (YYYY-MM-DD)
+        tests:
+          - not_null
+
+      - name: airline_iata
+        description: IATA two-letter airline designator (e.g., 'PD' for Porter Airlines)
+        tests:
+          - not_null
+
+      - name: total_scheduled
+        description: Total number of scheduled flights for this airline on this date
+        tests:
+          - not_null
+
+      - name: total_actual
+        description: >
+          Total number of flights that actually operated for this airline on this date
+        tests:
+          - not_null
+
+      - name: scheduled_dep
+        description: Number of scheduled departures for this airline on this date
+        tests:
+          - not_null
+
+      - name: scheduled_arr
+        description: Number of scheduled arrivals for this airline on this date
+        tests:
+          - not_null
+
+      - name: actual_dep
+        description: Number of departures that actually operated for this airline on this date
+        tests:
+          - not_null
+
+      - name: actual_arr
+        description: Number of arrivals that actually operated for this airline on this date
+        tests:
+          - not_null
+
+      - name: on_time_dep
+        description: Number of on-time departures for this airline on this date
+        tests:
+          - not_null
+
+      - name: on_time_arr
+        description: Number of on-time arrivals for this airline on this date
+        tests:
+          - not_null
+
+      - name: cancelled_count
+        description: Number of cancelled flights for this airline on this date
+        tests:
+          - not_null
+
+      - name: dep_otp_pct
+        description: >
+          Departure OTP percentage for this airline on this date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: arr_otp_pct
+        description: >
+          Arrival OTP percentage for this airline on this date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: cancellation_rate_pct
+        description: >
+          Cancellation rate percentage for this airline on this date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: dbt_utils_unique_combination_of_columns
+        description: Composite unique constraint on (flight_date, airline_iata)
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              combination_of_columns:
+                - flight_date
+                - airline_iata
+
+  - name: daily_airline_operations
+    description: >
+      Daily airline-level summary grouped by actual_operation_date and airline_iata.
+      Sources ALL rows from int_flights_enriched (both operating and marketing
+      carrier roles). Only includes flights that actually operated
+      (actual_operation_date IS NOT NULL). Uses the actual operation date rather
+      than the scheduled date to reflect when the physical aircraft movement
+      occurred. Materialized as incremental delete+insert with a 7-day look-back
+      window.
+
+    columns:
+      - name: actual_operation_date
+        description: Date on which the flights actually operated
+        tests:
+          - not_null
+
+      - name: airline_iata
+        description: IATA two-letter airline designator (e.g., 'PD' for Porter Airlines)
+        tests:
+          - not_null
+
+      - name: total_scheduled
+        description: Total number of scheduled flights for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: total_actual
+        description: >
+          Total number of flights that actually operated for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: scheduled_dep
+        description: Number of scheduled departures for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: scheduled_arr
+        description: Number of scheduled arrivals for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: actual_dep
+        description: Number of departures that actually operated for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: actual_arr
+        description: Number of arrivals that actually operated for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: on_time_dep
+        description: Number of on-time departures for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: on_time_arr
+        description: Number of on-time arrivals for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: cancelled_count
+        description: Number of cancelled flights for this airline on this operation date
+        tests:
+          - not_null
+
+      - name: dep_otp_pct
+        description: >
+          Departure OTP percentage for this airline on this operation date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: arr_otp_pct
+        description: >
+          Arrival OTP percentage for this airline on this operation date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: cancellation_rate_pct
+        description: >
+          Cancellation rate percentage for this airline on this operation date, rounded to 2 decimal places.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+      - name: dbt_utils_unique_combination_of_columns
+        description: Composite unique constraint on (actual_operation_date, airline_iata)
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              combination_of_columns:
+                - actual_operation_date
+                - airline_iata
+
 snapshots:
   - name: dim_airlines
     description: >
