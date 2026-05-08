@@ -60,6 +60,255 @@ models:
         tests:
           - not_null
 
+  - name: int_flights_enriched
+    description: >
+      Central join point that enriches staging data (stg_raw_flights) with all
+      dimension tables — dim_airlines (current SCD2 version), dim_airports
+      (departure and arrival, current SCD2 version), and dim_dates (scheduled
+      and actual operation dates). Pre-computes derived columns for on-time
+      performance, delay buckets, cancellation status, and the actual operation
+      date. Preserves ALL rows (both operating and marketing carrier roles) —
+      carrier_role filtering happens downstream in fct_flights.
+
+    columns:
+      - name: flight_id
+        description: >
+          Surrogate key hashed from flight_date, operating_flight_iata, and
+          direction. Identical across all codeshare rows of the same physical flight.
+        tests:
+          - not_null
+
+      - name: flight_date
+        description: Scheduled date of the flight (YYYY-MM-DD)
+        tests:
+          - not_null
+
+      - name: direction
+        description: Flight direction relative to YTZ — DEPARTURE or ARRIVAL
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['DEPARTURE', 'ARRIVAL']
+
+      - name: flight_status
+        description: >
+          Current flight status per AviationStack API.
+          Expected values: scheduled, active, actual, cancelled, canceled,
+          incident, diverted.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['scheduled', 'active', 'actual', 'cancelled', 'canceled', 'incident', 'diverted']
+
+      - name: dep_iata
+        description: IATA code of the departure airport
+        tests:
+          - not_null
+
+      - name: dep_airport_name
+        description: Full name of the departure airport from the API payload
+
+      - name: arr_iata
+        description: IATA code of the arrival airport
+        tests:
+          - not_null
+
+      - name: arr_airport_name
+        description: Full name of the arrival airport from the API payload
+
+      - name: airline_iata
+        description: >
+          IATA code of the airline on this row. For marketing/codeshare rows,
+          this is the marketing carrier (not the operator).
+        tests:
+          - not_null
+
+      - name: airline_name
+        description: Full name of the airline on this row from the API payload
+
+      - name: airline_icao
+        description: ICAO code of the airline from the API payload
+
+      - name: flight_iata
+        description: >
+          IATA flight number of the marketing carrier (e.g., 'EK123').
+          For codeshare rows, this is the marketing carrier's flight number.
+
+      - name: carrier_role
+        description: >
+          Role of the airline on this row. 'operating' means this airline flies
+          the aircraft. 'marketing' means this airline sells the ticket under a
+          codeshare agreement.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['operating', 'marketing']
+
+      - name: operating_airline_iata
+        description: >
+          IATA code of the airline that actually operates the aircraft.
+          For operating rows, equals airline_iata. For marketing rows,
+          extracted from the codeshared sub-object.
+
+      - name: operating_flight_iata
+        description: >
+          IATA flight number of the actual aircraft operator (e.g., 'PD101').
+          For operating rows, equals flight_iata. For marketing rows,
+          extracted from the codeshared sub-object.
+
+      - name: sched_dep
+        description: Scheduled departure time (with timezone)
+        tests:
+          - not_null
+
+      - name: sched_arr
+        description: Scheduled arrival time (with timezone)
+        tests:
+          - not_null
+
+      - name: actual_dep
+        description: >
+          Actual departure time (with timezone). NULL if the flight has not yet
+          departed or was cancelled.
+
+      - name: actual_arr
+        description: >
+          Actual arrival time (with timezone). NULL if the flight has not yet
+          arrived or was cancelled.
+
+      - name: delay_dep
+        description: Departure delay in minutes. Negative values indicate early departure.
+
+      - name: delay_arr
+        description: Arrival delay in minutes. Negative values indicate early arrival.
+
+      - name: gate_dep
+        description: Departure gate at YTZ or origin airport
+
+      - name: gate_arr
+        description: Arrival gate at YTZ or destination airport
+
+      - name: baggage
+        description: Baggage claim belt at the arrival airport
+
+      - name: terminal_dep
+        description: Departure terminal
+
+      - name: terminal_arr
+        description: Arrival terminal
+
+      - name: aircraft_icao24
+        description: ICAO 24-bit aircraft address (hex string, e.g., 'C06363')
+
+      - name: extracted_at
+        description: Timestamp when this flight record was loaded into Snowflake
+        tests:
+          - not_null
+
+      - name: target_airport
+        description: The monitored airport for this pipeline (always YTZ)
+        tests:
+          - not_null
+
+      - name: dim_airline_name
+        description: >
+          Airline name from the dim_airlines SCD2 dimension (current version only).
+          NULL when the airline is not yet present in the dimension table.
+
+      - name: dim_airline_icao
+        description: >
+          Airline ICAO code from the dim_airlines SCD2 dimension (current version only).
+          NULL when the airline is not yet present in the dimension table.
+
+      - name: dim_dep_airport_name
+        description: >
+          Departure airport name from the dim_airports SCD2 dimension (current version only).
+          NULL when the airport is not yet present in the dimension table.
+
+      - name: dim_arr_airport_name
+        description: >
+          Arrival airport name from the dim_airports SCD2 dimension (current version only).
+          NULL when the airport is not yet present in the dimension table.
+
+      - name: sched_year
+        description: 4-digit year of the scheduled flight date (from dim_dates)
+        tests:
+          - not_null
+
+      - name: sched_month
+        description: Month number (1-12) of the scheduled flight date (from dim_dates)
+        tests:
+          - not_null
+
+      - name: sched_day_name
+        description: Full day name (e.g., 'Monday') of the scheduled flight date (from dim_dates)
+        tests:
+          - not_null
+
+      - name: sched_is_weekend
+        description: Boolean — TRUE if the scheduled flight date is Saturday or Sunday (from dim_dates)
+        tests:
+          - not_null
+
+      - name: actual_operation_date
+        description: >
+          Date on which the flight actually operated, derived from the earlier of
+          actual_dep or actual_arr. NULL for cancelled or non-operated flights.
+
+      - name: is_on_time_dep
+        description: >
+          TRUE when delay_dep <= 15 minutes AND actual_dep IS NOT NULL.
+          FALSE when the flight departed with a delay > 15 minutes.
+          NULL when actual_dep IS NULL (flight hasn't departed or was cancelled).
+
+      - name: is_on_time_arr
+        description: >
+          TRUE when delay_arr <= 15 minutes AND actual_arr IS NOT NULL.
+          FALSE when the flight arrived with a delay > 15 minutes.
+          NULL when actual_arr IS NULL (flight hasn't arrived or was cancelled).
+
+      - name: delay_bucket_dep
+        description: >
+          Departure delay categorized into buckets: 'On Time' (<=15 min),
+          '15-30 min' (16-30), '30-60 min' (31-60), '60+ min' (>60).
+          NULL when actual_dep IS NULL.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['On Time', '15-30 min', '30-60 min', '60+ min']
+
+      - name: delay_bucket_arr
+        description: >
+          Arrival delay categorized into buckets: 'On Time' (<=15 min),
+          '15-30 min' (16-30), '30-60 min' (31-60), '60+ min' (>60).
+          NULL when actual_arr IS NULL.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['On Time', '15-30 min', '30-60 min', '60+ min']
+
+      - name: is_cancelled
+        description: >
+          TRUE when flight_status is 'cancelled' or 'canceled' (case-insensitive).
+          FALSE for all other statuses.
+        tests:
+          - not_null
+
+      - name: actual_year
+        description: 4-digit year of the actual operation date (from dim_dates). NULL when actual_operation_date IS NULL.
+
+      - name: actual_month
+        description: Month number (1-12) of the actual operation date (from dim_dates). NULL when actual_operation_date IS NULL.
+
+      - name: actual_day_name
+        description: Full day name of the actual operation date (from dim_dates). NULL when actual_operation_date IS NULL.
+
+      - name: actual_is_weekend
+        description: Boolean — TRUE if the actual operation date is Saturday or Sunday (from dim_dates). NULL when actual_operation_date IS NULL.
+
   - name: fct_flights
     description: >
       Fact table — one row per flight event (departure or arrival) at YTZ.
