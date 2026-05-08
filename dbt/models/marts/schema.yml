@@ -423,9 +423,10 @@ models:
           Updated via merge as the flight progresses.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: -60
-              max_value: 1440
-              row_condition: "delay_dep IS NOT NULL"
+              arguments:
+                min_value: -60
+                max_value: 1440
+                row_condition: "delay_dep IS NOT NULL"
 
       - name: delay_arr
         description: >
@@ -433,9 +434,10 @@ models:
           Updated via merge as the flight progresses.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: -60
-              max_value: 1440
-              row_condition: "delay_arr IS NOT NULL"
+              arguments:
+                min_value: -60
+                max_value: 1440
+                row_condition: "delay_arr IS NOT NULL"
 
       - name: gate_dep
         description: Departure gate at YTZ or origin airport
@@ -679,8 +681,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
       - name: arr_otp_pct
         description: >
@@ -690,8 +693,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
       - name: cancellation_rate_pct
         description: >
@@ -700,8 +704,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
   - name: daily_airport_operations
     description: >
@@ -774,8 +779,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
       - name: arr_otp_pct
         description: >
@@ -783,8 +789,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
       - name: cancellation_rate_pct
         description: >
@@ -792,8 +799,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
   - name: daily_airline_summary
     description: >
@@ -867,8 +875,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
       - name: arr_otp_pct
         description: >
@@ -876,8 +885,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
       - name: cancellation_rate_pct
         description: >
@@ -885,16 +895,16 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
-      - name: dbt_utils_unique_combination_of_columns
-        description: Composite unique constraint on (flight_date, airline_iata)
-        tests:
-          - dbt_utils.unique_combination_of_columns:
-              combination_of_columns:
-                - flight_date
-                - airline_iata
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+            - flight_date
+            - airline_iata
 
   - name: daily_airline_operations
     description: >
@@ -969,8 +979,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
       - name: arr_otp_pct
         description: >
@@ -978,8 +989,9 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
       - name: cancellation_rate_pct
         description: >
@@ -987,16 +999,16 @@ models:
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
-      - name: dbt_utils_unique_combination_of_columns
-        description: Composite unique constraint on (actual_operation_date, airline_iata)
-        tests:
-          - dbt_utils.unique_combination_of_columns:
-              combination_of_columns:
-                - actual_operation_date
-                - airline_iata
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+            - actual_operation_date
+            - airline_iata
 
 snapshots:
   - name: dim_airlines
