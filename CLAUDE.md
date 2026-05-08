@@ -12,7 +12,7 @@
 
 ## Conventions
 - Code style: clean, readable, no strict formatter/linter enforced
-- dbt structure: staging → marts (intermediate layer added only if complexity demands it), following dbt Labs recommended best practices
+- dbt structure: staging → intermediate → marts, following dbt Labs recommended best practices
 - Python: OOP classes with `main()` entry points, logger per module, centralized config
 - Testing: pytest for Python pipeline code, dbt schema tests (unique, not_null) + dbt-expectations for data quality
 - Commit style: `<type>: <short description>` — body explains *why*, not *what*
@@ -21,6 +21,8 @@
 - `src/` — Python pipeline code (API extraction, Snowflake loader, centralized config)
 - `dbt/` — dbt project (models/staging, models/marts, macros, seeds, snapshots, tests)
 - `tests/` — pytest unit tests for Python pipeline
+- `docs/decisions/` — Architecture decision records (project design, DAG, KPIs)
+- `setup_snowflake.sql` — Snowflake DDL for database, schema, stage, and raw table
 
 ## Scope
 - Tri-weekly batch ELT pipeline for Toronto Island Airport (YTZ)

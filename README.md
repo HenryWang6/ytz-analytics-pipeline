@@ -40,13 +40,15 @@ ytz-analytics-pipeline/
 │   ├── extract_flights.py     # AviationAPIClient + extraction orchestration
 │   └── load_flights.py        # SnowflakeLoader + file ingestion
 ├── dbt/
-│   ├── models/staging/        # 1:1 with source, JSON flattening (schema defined, models TBD)
-│   ├── models/marts/          # Business-facing fact/dimension tables (schema defined, models TBD)
+│   ├── models/staging/        # stg_raw_flights (view) — JSON flattening + codeshare logic
+│   ├── models/marts/          # fct_flights + dim/summary models (in progress)
+│   ├── models/sources.yml     # Source definition: raw.raw_flights
 │   ├── macros/                # Reusable Jinja macros (TBD)
-│   ├── seeds/                 # CSV reference data (TBD)
-│   ├── snapshots/             # SCD Type 2 (planned)
+│   ├── seeds/                 # CSV reference data (TBD: ytz_capacity)
+│   ├── snapshots/             # SCD Type 2 (TBD: dim_airlines, dim_airports)
 │   └── tests/                 # Custom singular data tests (TBD)
-├── tests/                     # pytest unit tests
+├── tests/                     # pytest unit tests for Python pipeline
+├── docs/decisions/            # ADR: project design, dashboard structure, DAG
 ├── data/                      # Local NDJSON buffer (extract → load handoff)
 ├── setup_snowflake.sql        # DDL: database, schema, stage, table
 ├── requirements.txt           # Python dependencies
