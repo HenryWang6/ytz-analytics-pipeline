@@ -33,6 +33,7 @@ SELECT
     )                                                                                         AS cancellation_rate_pct
 FROM {{ ref('int_flights_enriched') }}
 WHERE actual_operation_date IS NOT NULL
+  AND airline_iata IS NOT NULL
 
 {% if is_incremental() %}
   AND actual_operation_date >= (SELECT MAX(actual_operation_date) FROM {{ this }}) - INTERVAL '7 days'

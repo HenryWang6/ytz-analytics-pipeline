@@ -672,9 +672,8 @@ models:
         description: >
           Departure on-time performance percentage. Calculated as on_time_dep
           divided by flights with actual_dep IS NOT NULL. Rounded to 2 decimal places.
-          NULL-safe via NULLIF denominator.
+          NULL-safe via NULLIF denominator. NULL when no relevant flights operated.
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -684,9 +683,8 @@ models:
         description: >
           Arrival on-time performance percentage. Calculated as on_time_arr
           divided by flights with actual_arr IS NOT NULL. Rounded to 2 decimal places.
-          NULL-safe via NULLIF denominator.
+          NULL-safe via NULLIF denominator. NULL when no relevant flights operated.
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -867,8 +865,8 @@ models:
       - name: dep_otp_pct
         description: >
           Departure OTP percentage for this airline on this date, rounded to 2 decimal places.
+          NULL when no departures operated.
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -877,8 +875,8 @@ models:
       - name: arr_otp_pct
         description: >
           Arrival OTP percentage for this airline on this date, rounded to 2 decimal places.
+          NULL when no arrivals operated.
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -981,8 +979,8 @@ models:
       - name: arr_otp_pct
         description: >
           Arrival OTP percentage for this airline on this operation date, rounded to 2 decimal places.
+          NULL when no arrivals operated.
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
