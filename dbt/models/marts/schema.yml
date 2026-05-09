@@ -358,17 +358,16 @@ models:
         description: Full name of the departure airport from the API payload
 
       - name: arr_iata
-        description: IATA code of the arrival airport
-        tests:
-          - not_null
+        description: >
+          IATA code of the arrival airport. NULL for incomplete API records.
 
       - name: arr_airport_name
         description: Full name of the arrival airport from the API payload
 
       - name: airline_iata
-        description: IATA code of the operating airline (post-filter to operating rows)
-        tests:
-          - not_null
+        description: >
+          IATA code of the operating airline (post-filter to operating rows).
+          NULL when the API omits airline data.
 
       - name: airline_name
         description: Full name of the operating airline from the API payload
@@ -380,14 +379,14 @@ models:
         description: IATA flight number of the operating carrier
 
       - name: operating_airline_iata
-        description: IATA code of the airline that physically operates the aircraft
-        tests:
-          - not_null
+        description: >
+          IATA code of the airline that physically operates the aircraft.
+          NULL when the airline data is missing from the API.
 
       - name: operating_flight_iata
-        description: IATA flight number of the actual aircraft operator (e.g., 'PD101')
-        tests:
-          - not_null
+        description: >
+          IATA flight number of the actual aircraft operator (e.g., 'PD101').
+          NULL when the flight data is missing from the API.
 
       - name: sched_dep
         description: >

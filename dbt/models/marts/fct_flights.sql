@@ -78,3 +78,7 @@ WHERE carrier_role = 'operating'
   -- (e.g., scheduled -> active -> landed across consecutive extracts)
   AND flight_date >= (SELECT MAX(flight_date) FROM {{ this }}) - INTERVAL '3 days'
 {% endif %}
+
+-- Deduplicate by flight_id: keep the most recent extraction when the same
+-- physical flight appears in multiple API extracts (different extracted_at).
+QUALIFY ROW_NUMBER() OVER (PARTITION BY flight_id ORDER BY extracted_at DESC) = 1
