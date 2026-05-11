@@ -33,14 +33,14 @@ models:
       - name: flight_status
         description: >
           Current flight status per AviationStack API.
-          Expected values: scheduled, active, actual, cancelled, canceled,
-          incident, diverted. NULL for dead/incomplete API records.
+          Expected values: scheduled, active, landed, actual, cancelled, canceled,
+          incident, diverted. Empty string for incomplete/dead API records.
         tests:
           - accepted_values:
               arguments:
-                values: ['scheduled', 'active', 'actual', 'cancelled', 'canceled', 'incident', 'diverted']
+                values: ['scheduled', 'active', 'landed', 'actual', 'cancelled', 'canceled', 'incident', 'diverted', '']
 
-      - name: dep_iata
+      - name: dep_airport_iata
         description: IATA code of the departure airport
         tests:
           - not_null
@@ -49,7 +49,7 @@ models:
         description: >
           Full name of the departure airport (e.g., 'Toronto City Centre Airport').
 
-      - name: arr_iata
+      - name: arr_airport_iata
         description: >
           IATA code of the arrival airport. NULL for incomplete API records.
 
@@ -57,6 +57,23 @@ models:
         description: >
           Full name of the arrival airport (e.g., 'Sault Sainte Marie').
           NULL when the API omits airport details.
+
+      - name: dep_gate
+        description: Departure gate at YTZ or origin airport
+
+      - name: arr_gate
+        description: Arrival gate at YTZ or destination airport
+
+      - name: arr_baggage
+        description: >
+          Baggage claim belt at the arrival airport. Sourced from
+          arrival.baggage in the API response. NULL when unavailable.
+
+      - name: dep_terminal
+        description: Departure terminal. NULL when not available in the API response.
+
+      - name: arr_terminal
+        description: Arrival terminal. NULL when not available in the API response.
 
       - name: airline_iata
         description: >
@@ -105,48 +122,25 @@ models:
           from the codeshared sub-object. NULL when the underlying flight data
           is missing.
 
-      - name: sched_dep
+      - name: dep_sched_at
         description: Scheduled departure time (with timezone)
         tests:
           - not_null
 
-      - name: sched_arr
+      - name: arr_sched_at
         description: Scheduled arrival time (with timezone)
         tests:
           - not_null
 
-      - name: actual_dep
+      - name: dep_actual_at
         description: >
           Actual departure time (with timezone). NULL if the flight has not yet
           departed or was cancelled.
 
-      - name: actual_arr
+      - name: arr_actual_at
         description: >
           Actual arrival time (with timezone). NULL if the flight has not yet
           arrived or was cancelled.
-
-      - name: delay_dep
-        description: Departure delay in minutes. Negative values indicate early departure.
-
-      - name: delay_arr
-        description: Arrival delay in minutes. Negative values indicate early arrival.
-
-      - name: gate_dep
-        description: Departure gate at YTZ or origin airport
-
-      - name: gate_arr
-        description: Arrival gate at YTZ or destination airport
-
-      - name: baggage
-        description: >
-          Baggage claim belt at the arrival airport. Sourced from
-          arrival.baggage in the API response. NULL when unavailable.
-
-      - name: terminal_dep
-        description: Departure terminal. NULL when not available in the API response.
-
-      - name: terminal_arr
-        description: Arrival terminal. NULL when not available in the API response.
 
       - name: aircraft_icao24
         description: >

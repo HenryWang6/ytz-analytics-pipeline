@@ -13,11 +13,23 @@ logger = get_logger("extract_flights")
 
 class AviationAPIClient:
     """Client for interacting with the AviationStack API."""
-    def __init__(self, api_url: str, api_key: str,
+    def __init__(self, 
+                 api_url: str = API_URL, 
+                 api_key: str = API_KEY,
                  max_retries: int = API_MAX_RETRIES,
                  backoff_factor: int = API_RETRY_BACKOFF,
                  page_delay: float = API_PAGE_DELAY,
                  max_pages: int = API_MAX_PAGES):
+        """
+        Parameters:
+        api_url (str): The URL of the API endpoint.
+        api_key (str): The API key for authentication.
+        max_retries (int): The maximum number of retries for failed requests.
+        backoff_factor (int): The factor to multiply by for each retry (exponential backoff).
+        page_delay (float): The delay between page requests to respect rate limits.
+        max_pages (int): The maximum number of pages to fetch.
+        """
+
         self.api_url = api_url
         self.api_key = api_key
         self.max_retries = max_retries
@@ -28,6 +40,7 @@ class AviationAPIClient:
         
     def fetch_flights(self, limit: int = 100, **api_filters) -> list:
         """Fetch all pages of flights for the given filters."""
+
         logger.info(f"Fetching flights with filters: {api_filters}...")
 
         all_flights = []
@@ -126,11 +139,11 @@ def main():
         logger.error(e)
         return
 
-    client = AviationAPIClient(api_url=API_URL, api_key=API_KEY)
+    client = AviationAPIClient()
     
     # Target airport can be dynamically passed via CLI/Args in the future.
     target_airport = "YTZ"
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    #today_str = datetime.now().strftime("%Y-%m-%d")
     
     extraction_tasks = [
         {"label": "DEPARTURE", "filters": {"dep_iata": target_airport}},
@@ -148,13 +161,16 @@ def main():
             continue
             
         # Filter for today's data only (to bypass API tier restrictions on flight_date)
-        todays_flights = [f for f in flights if f.get("flight_date") == today_str]
+        # This is debatable. Tri-weekly request needs to fetch previously scheduled flights.
+        # The filter (daily refresh) can be handled in downstream ELT process instead.
+        # Comment out for now.
+        # todays_flights = [f for f in flights if f.get("flight_date") == today_str]
         
-        if not todays_flights:
-            logger.warning(f"No {label} flights found for {today_str} in the feed. Skipping.")
-            continue
+        # if not todays_flights:
+        #     logger.warning(f"No {label} flights found for {today_str} in the feed. Skipping.")
+        #     continue
             
-        save_to_ndjson(todays_flights, label, DATA_DIR)
+        save_to_ndjson(flights, label, DATA_DIR)
             
     logger.info("=== Extraction Complete ===")
 
