@@ -143,8 +143,7 @@ def main():
     
     # Target airport can be dynamically passed via CLI/Args in the future.
     target_airport = "YTZ"
-    #today_str = datetime.now().strftime("%Y-%m-%d")
-    
+
     extraction_tasks = [
         {"label": "DEPARTURE", "filters": {"dep_iata": target_airport}},
         {"label": "ARRIVAL", "filters": {"arr_iata": target_airport}}
@@ -159,17 +158,7 @@ def main():
         if not flights:
             logger.warning(f"No {label} flights found or an error occurred. Skipping.")
             continue
-            
-        # Filter for today's data only (to bypass API tier restrictions on flight_date)
-        # This is debatable. Tri-weekly request needs to fetch previously scheduled flights.
-        # The filter (daily refresh) can be handled in downstream ELT process instead.
-        # Comment out for now.
-        # todays_flights = [f for f in flights if f.get("flight_date") == today_str]
-        
-        # if not todays_flights:
-        #     logger.warning(f"No {label} flights found for {today_str} in the feed. Skipping.")
-        #     continue
-            
+
         save_to_ndjson(flights, label, DATA_DIR)
             
     logger.info("=== Extraction Complete ===")

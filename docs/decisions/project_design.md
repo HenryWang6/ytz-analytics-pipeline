@@ -228,3 +228,53 @@ All incremental models support `--full-refresh` for initial builds.
 8. Airline dropdown: `SELECT DISTINCT airline_iata FROM daily_airline_summary` includes marketing-only carriers (TS, UA, LX)
 9. Incremental: re-running `dbt run` on the same day produces idempotent results (no doubled counts)
 10. flight_status coverage: dbt test on stg_raw_flights confirms expected statuses (scheduled, active, landed, cancelled/canceled) and flags any new ones
+
+
+
+
+
+# My Own Design
+## Extract
+  - Purpose: Use Python to extract data from AviationStack API
+  - API filter used: `arr_iata = 'YTZ'` | `dep_iata = 'YTZ'`
+  - Constraints: 100 request/month, 100 records/request (free tier)
+  - Refreshing Strategy: Tri-weekly refresh (Mon/Wed/Fri), every refresh executes 2 API requests (1 departure + 1 arrival), each with `max_pages=1` (top 100 records)
+  - `flight_date` API parameter is **not available on free tier** (returns 403). No client-side date filter is applied — all flights returned by the API are ingested. dbt downstream models handle date logic.
+  - Output: save API results as NDJSON to `data/flights_{departure/arrival}_{YYYYMMDD}_{HHmmss}.json` as temp cache before load.
+  - Implementation: `src/extract_flights.py`
+    - `AviationAPIClient` class with `requests.Session` reuse, exponential backoff retry (5xx only, max 3 retries), 4xx bails immediately, `max_pages=1` pagination cap, 1s delay between pages
+    - `save_to_ndjson()` writes one JSON object per line to timestamped files
+    - `main()` orchestrates: validates API config → fetches departures → fetches arrivals → saves each to NDJSON
+
+## Load
+  - Purpose: Use Python to upload new data (cached files) to Snowflake.
+  - Destination: `raw_db/aviation/stages/raw_flights_stage` and load into table: `raw_db/aviation/tables/raw_flights`.
+  - Once completed, move the local cached files into `data/archive/` and remove the new files from `raw_flights_stage`.
+
+## Transform
+  - Seeds:
+    1. Airline Mapping: seeds/airline_mapping.csv - A regulated airline mapping table using `https://raw.githubusercontent.com/jpatokal/openflights/master/data/airlines.dat` as 1 time data source.
+    2. 
+
+
+  - Stag Layer:
+    1. stg_flight_records
+      - Path: `analytics_bd/staging/stg_flight_records`
+      - Ref: `raw_db/aviation/tables/raw_flights`
+      - Materialization: incremental - **Whatever pending**??? how to define???
+      - Tasks: Use the current logic inside /stg_raw_flights.sql
+      - **!incremental strategy not defined yet!**
+      
+
+    2. stg_airlines
+      - Path: `analytics_bd/intermediate/int_airlines_clean`
+      - Ref: stg_flight_records
+      - Materialized: incremental?
+      - 
+      
+      - Tasks: 
+        - Take the distinct airline_iata, airline_ical, airline_name
+
+    3. stg_airport
+      - Path: `analytics_bd/aviation/aviation_staging/stg_airport`
+

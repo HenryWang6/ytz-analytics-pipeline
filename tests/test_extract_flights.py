@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from extract_flights import AviationAPIClient, save_to_ndjson
+from extract_flights import AviationAPIClient, save_to_ndjson, main
 
 
 class TestAviationAPIClient:
@@ -195,3 +195,27 @@ class TestSaveToNdjson:
             nested = os.path.join(tmpdir, "subdir")
             save_to_ndjson(flights, "ARRIVAL", nested)
             assert os.path.isdir(nested)
+
+
+class TestMain:
+    """Tests for the main() orchestration function — mocks the API."""
+
+    def test_produces_two_files(self, requests_mock, monkeypatch):
+        monkeypatch.setenv("AVIATION_API_KEY", "test_key")
+        payload = {
+            "data": [{"flight_date": "2026-05-06", "flight": {"iata": "PD101"}}],
+            "pagination": {"total": 1, "count": 1},
+        }
+        requests_mock.get(
+            "http://api.aviationstack.com/v1/flights",
+            json=payload,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            monkeypatch.setattr("extract_flights.DATA_DIR", tmpdir)
+            main()
+
+            files = os.listdir(tmpdir)
+            assert len(files) == 2
+            assert any("departure" in f for f in files)
+            assert any("arrival" in f for f in files)

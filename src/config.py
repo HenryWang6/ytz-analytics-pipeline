@@ -41,7 +41,7 @@ def get_logger(name: str) -> logging.Logger:
     return logger
 
 def validate_api_config():
-    if not API_KEY or API_KEY == "your_aviationstack_or_opensky_api_key_here":
+    if not API_KEY or API_KEY == "your_api_key_here":
         raise ValueError("AVIATION_API_KEY is missing or invalid in .env")
 
 def validate_snowflake_config():
