@@ -116,19 +116,24 @@ def main():
         role=SF_ROLE, warehouse=SF_WAREHOUSE, database=RAW_DATABASE, schema=RAW_SCHEMA
     )
         
+    succeeded = 0
+    failed = 0
+
     for filepath in files:
         success = loader.load_file(filepath)
-        
+
         if success:
             archive_dir = os.path.join(os.path.dirname(filepath), "archive")
             os.makedirs(archive_dir, exist_ok=True)
             archived_path = os.path.join(archive_dir, os.path.basename(filepath))
             shutil.move(filepath, archived_path)
             logger.info(f"Archived loaded file to {archived_path}")
+            succeeded += 1
         else:
             logger.warning(f"Skipping archive for {filepath} due to load error.")
-            
-    logger.info("=== Load Complete ===")
+            failed += 1
+
+    logger.info(f"=== Load Complete — {succeeded} succeeded, {failed} failed ===")
 
 if __name__ == "__main__":
     main()

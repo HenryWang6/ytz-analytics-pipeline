@@ -24,3 +24,42 @@ seeds:
         description: Local time the airport closes for operations (24-hour format)
         tests:
           - not_null
+
+  - name: airline_mapping
+    description: >
+      Canonical airline reference data sourced from openflights.org airlines.dat.
+      Used to standardize airline attributes (name, ICAO, country) from the
+      AviationStack API, which returns inconsistent naming. Rows where active='N'
+      represent defunct airlines — filter downstream as needed.
+    config:
+      column_types:
+        airline_id: integer
+    columns:
+      - name: airline_id
+        description: OpenFlights internal airline identifier
+        tests:
+          - unique
+          - not_null
+      - name: airline_name
+        description: >-
+          Canonical airline name (e.g. Porter Airlines, not Porter as the API returns)
+        tests:
+          - not_null
+      - name: alias
+        description: Alternate name or trading name (often blank)
+      - name: iata
+        description: >-
+          IATA two-letter designator (e.g. PD for Porter). NULL when not assigned.
+      - name: icao
+        description: >-
+          ICAO three-letter designator (e.g. POE). NULL when not assigned.
+      - name: callsign
+        description: >-
+          Radiotelephony callsign in uppercase (e.g. PORTER AIR)
+      - name: country
+        description: Country where the airline is registered
+      - name: active
+        description: Y if active, N if defunct
+        tests:
+          - accepted_values:
+              values: ['Y', 'N']
