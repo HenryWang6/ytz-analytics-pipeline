@@ -247,11 +247,18 @@ All incremental models support `--full-refresh` for initial builds.
     - `main()` orchestrates: validates API config → fetches departures → fetches arrivals → saves each to NDJSON
 
 ## Load
-  - Purpose: Use Python to upload new data (cached files) to Snowflake.
-  - Destination: `raw_db/aviation/stages/raw_flights_stage` and load into table: `raw_db/aviation/tables/raw_flights`.
-  - Once completed, move the local cached files into `data/archive/` and remove the new files from `raw_flights_stage`.
+  - Purpose: Use Python to upload cached NDJSON files (from Extract) into Snowflake.
+  - Destination: `RAW_DB.AVIATION.RAW_FLIGHTS_STAGE` → `RAW_DB.AVIATION.RAW_FLIGHTS` (VARIANT table with metadata columns).
+  - Stage cleanup: `PURGE = TRUE` on COPY INTO atomically removes files from stage after successful load.
+  - Post-load: successfully loaded files are moved from `data/` into `data/archive/`.
+  - Implementation: `src/load_flights.py`
+    - `_parse_filename()` extracts direction and timestamp from filename pattern
+    - `SnowflakeLoader` class: PUT to internal stage, COPY INTO with PURGE, connection cleanup in finally block
+    - `get_pending_files()` scans `data/` for `.json` files (ignores `archive/` subdirectory)
+    - `main()` orchestrates: validates Snowflake config → gets pending files → loads each → archives on success, leaves on failure
+    - Config: uses `RAW_DATABASE`, `RAW_SCHEMA`, `RAW_STAGE`, `RAW_TABLE` from `config.py` (distinct from future analytics-layer config)
 
-## Transform
+## DBT Transform
   - Seeds:
     1. Airline Mapping: seeds/airline_mapping.csv - A regulated airline mapping table using `https://raw.githubusercontent.com/jpatokal/openflights/master/data/airlines.dat` as 1 time data source.
     2. 

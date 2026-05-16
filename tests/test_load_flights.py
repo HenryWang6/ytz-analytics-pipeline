@@ -1,23 +1,32 @@
 import os
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from load_flights import get_pending_files, SnowflakeLoader, _extract_direction
+from load_flights import get_pending_files, SnowflakeLoader, _parse_filename, main
 
 
-class TestExtractDirection:
-    def test_parses_departure(self):
-        assert _extract_direction("flights_departure_20260430_171743.json") == "DEPARTURE"
+class TestParseFilename:
+    def test_parses_departure_with_timestamp(self):
+        direction, extracted_at = _parse_filename("flights_departure_20260430_171743.json")
+        assert direction == "DEPARTURE"
+        assert extracted_at == "'2026-04-30 17:17:43'"
 
-    def test_parses_arrival(self):
-        assert _extract_direction("flights_arrival_20260430_171746.json") == "ARRIVAL"
+    def test_parses_arrival_with_timestamp(self):
+        direction, extracted_at = _parse_filename("flights_arrival_20260430_171746.json")
+        assert direction == "ARRIVAL"
+        assert extracted_at == "'2026-04-30 17:17:46'"
 
-    def test_returns_unknown_for_malformed(self):
-        assert _extract_direction("bad_filename.json") == "UNKNOWN"
+    def test_returns_fallback_for_malformed(self):
+        direction, extracted_at = _parse_filename("bad_filename.json")
+        assert direction == "UNKNOWN"
+        assert extracted_at == "CURRENT_TIMESTAMP()"
 
-    def test_returns_unknown_for_wrong_pattern(self):
-        assert _extract_direction("flights_unknown_20260430_171746.json") == "UNKNOWN"
+    def test_returns_fallback_for_wrong_pattern(self):
+        direction, extracted_at = _parse_filename("flights_unknown_20260430_171746.json")
+        assert direction == "UNKNOWN"
+        assert extracted_at == "CURRENT_TIMESTAMP()"
 
 
 class TestGetPendingFiles:
@@ -58,3 +67,45 @@ class TestSnowflakeLoader:
         assert loader.user == "test_user"
         assert loader.role == "ANALYST"
         assert loader.warehouse == "MY_WH"
+
+
+class TestMain:
+    """Tests for the main() orchestration function — no Snowflake connection."""
+
+    def test_archives_file_on_success(self, monkeypatch):
+        monkeypatch.setenv("SNOWFLAKE_ACCOUNT", "test_account")
+        monkeypatch.setenv("SNOWFLAKE_USER", "test_user")
+        monkeypatch.setenv("SNOWFLAKE_PASSWORD", "test_pass")
+        monkeypatch.setattr(SnowflakeLoader, "load_file", lambda self, path: True)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = os.path.join(tmpdir, "flights_departure_20260515_120000.json")
+            with open(src, "w") as f:
+                f.write('{"test": "data"}\n')
+
+            monkeypatch.setattr("load_flights.DATA_DIR", tmpdir)
+            main()
+
+            assert not os.path.exists(src)
+            assert os.path.exists(
+                os.path.join(tmpdir, "archive", os.path.basename(src))
+            )
+
+    def test_leaves_file_on_failure(self, monkeypatch):
+        monkeypatch.setenv("SNOWFLAKE_ACCOUNT", "test_account")
+        monkeypatch.setenv("SNOWFLAKE_USER", "test_user")
+        monkeypatch.setenv("SNOWFLAKE_PASSWORD", "test_pass")
+        monkeypatch.setattr(SnowflakeLoader, "load_file", lambda self, path: False)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = os.path.join(tmpdir, "flights_departure_20260515_120000.json")
+            with open(src, "w") as f:
+                f.write('{"test": "data"}\n')
+
+            monkeypatch.setattr("load_flights.DATA_DIR", tmpdir)
+            main()
+
+            assert os.path.exists(src)
+            assert not os.path.exists(
+                os.path.join(tmpdir, "archive", os.path.basename(src))
+            )

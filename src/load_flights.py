@@ -3,18 +3,22 @@ import re
 import shutil
 import snowflake.connector
 from config import (
-    get_logger, validate_snowflake_config, DATA_DIR, 
-    SF_ACCOUNT, SF_USER, SF_PASSWORD, SF_ROLE, 
-    SF_WAREHOUSE, SF_DATABASE, SF_SCHEMA
+    get_logger, validate_snowflake_config, DATA_DIR,
+    SF_ACCOUNT, SF_USER, SF_PASSWORD, SF_ROLE,
+    SF_WAREHOUSE, RAW_DATABASE, RAW_SCHEMA, RAW_STAGE, RAW_TABLE
 )
 
 logger = get_logger("load_flights")
 
 
-def _extract_direction(filename: str) -> str:
-    """Extract direction label from a flights_{direction}_{timestamp}.json filename."""
-    match = re.match(r'flights_(departure|arrival)_\d{8}_\d{6}\.json', filename, re.IGNORECASE)
-    return match.group(1).upper() if match else "UNKNOWN"
+def _parse_filename(filename: str) -> tuple[str, str]:
+    """Extract (direction, extracted_at) from a flights_{direction}_{YYYYMMDD}_{HHMMSS}.json filename."""
+    match = re.match(r'flights_(departure|arrival)_(\d{8})_(\d{6})\.json', filename, re.IGNORECASE)
+    if not match:
+        return ("UNKNOWN", "CURRENT_TIMESTAMP()")
+    direction = match.group(1).upper()
+    extracted_at = f"'{match.group(2)[:4]}-{match.group(2)[4:6]}-{match.group(2)[6:8]} {match.group(3)[:2]}:{match.group(3)[2:4]}:{match.group(3)[4:6]}'"
+    return (direction, extracted_at)
 
 
 class SnowflakeLoader:
@@ -31,11 +35,11 @@ class SnowflakeLoader:
     def load_file(self, filepath: str) -> bool:
         """Uploads a local NDJSON file to the Snowflake Stage and executes COPY INTO."""
         filename = os.path.basename(filepath)
-        direction = _extract_direction(filename)
+        direction, extracted_at = _parse_filename(filename)
         target_airport = "YTZ"
-        
+
         logger.info(f"Connecting to Snowflake to load {filename}...")
-        
+
         try:
             conn = snowflake.connector.connect(
                 user=self.user,
@@ -46,27 +50,28 @@ class SnowflakeLoader:
                 database=self.database,
                 schema=self.schema
             )
-            
+
             cursor = conn.cursor()
-            
+
             # 1. PUT command to upload the file to the internal stage
-            put_command = f"PUT file://{filepath} @AVIATION_STAGE AUTO_COMPRESS=TRUE OVERWRITE=TRUE;"
+            put_command = f"PUT file://{filepath} @{RAW_STAGE} AUTO_COMPRESS=TRUE OVERWRITE=TRUE;"
             logger.info("Executing PUT command...")
             cursor.execute(put_command)
-            
-            # 2. COPY INTO command
+
+            # 2. COPY INTO command with PURGE (cleans stage on success)
             filename_in_stage = filename + ".gz"
             copy_command = f"""
-            COPY INTO RAW_FLIGHTS (RAW_JSON, EXTRACTED_AT, DIRECTION, TARGET_AIRPORT)
+            COPY INTO {RAW_TABLE} (RAW_JSON, EXTRACTED_AT, DIRECTION, TARGET_AIRPORT)
             FROM (
-                SELECT 
-                    $1, 
-                    CURRENT_TIMESTAMP(), 
-                    '{direction}', 
+                SELECT
+                    $1,
+                    {extracted_at},
+                    '{direction}',
                     '{target_airport}'
-                FROM @AVIATION_STAGE/{filename_in_stage}
+                FROM @{RAW_STAGE}/{filename_in_stage}
             )
-            FILE_FORMAT = (TYPE = JSON);
+            FILE_FORMAT = (TYPE = JSON)
+            PURGE = TRUE;
             """
             
             logger.info("Executing COPY INTO command...")
@@ -108,7 +113,7 @@ def main():
         
     loader = SnowflakeLoader(
         account=SF_ACCOUNT, user=SF_USER, password=SF_PASSWORD,
-        role=SF_ROLE, warehouse=SF_WAREHOUSE, database=SF_DATABASE, schema=SF_SCHEMA
+        role=SF_ROLE, warehouse=SF_WAREHOUSE, database=RAW_DATABASE, schema=RAW_SCHEMA
     )
         
     for filepath in files:

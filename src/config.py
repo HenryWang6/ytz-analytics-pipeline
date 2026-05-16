@@ -24,10 +24,10 @@ SF_USER = os.getenv("SNOWFLAKE_USER")
 SF_PASSWORD = os.getenv("SNOWFLAKE_PASSWORD")
 SF_ROLE = os.getenv("SNOWFLAKE_ROLE", "ACCOUNTADMIN")
 SF_WAREHOUSE = os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
-SF_DATABASE = os.getenv("SNOWFLAKE_DATABASE", "RAW_DB")
-SF_SCHEMA = os.getenv("SNOWFLAKE_SCHEMA", "AVIATION")
-SF_STAGE = os.getenv("SNOWFLAKE_STAGE", "AVIATION_STAGE")
-SF_TABLE = os.getenv("SNOWFLAKE_TABLE", "RAW_FLIGHTS")
+RAW_DATABASE = os.getenv("RAW_DATABASE", "RAW_DB")
+RAW_SCHEMA = os.getenv("RAW_SCHEMA", "AVIATION")
+RAW_STAGE = os.getenv("RAW_STAGE", "RAW_FLIGHTS_STAGE")
+RAW_TABLE = os.getenv("RAW_TABLE", "RAW_FLIGHTS")
 
 def get_logger(name: str) -> logging.Logger:
     """Returns a configured logger instance."""
